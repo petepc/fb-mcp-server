@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "firebase-tools@latest", "mcp"]
+    }
+  }
+}
+
+// Alternative configurations:
+
+// For specific project directory:
+// {
+//   "mcpServers": {
+//     "firebase": {
+//       "command": "npx", 
+//       "args": ["-y", "firebase-tools@latest", "mcp"],
+//       "env": {
+//         "WORKDIR": "/path/to/your/firebase/project"
+//       }
+//     }
+//   }
+// }
+
+// For specific feature groups only:
+// {
+//   "mcpServers": {
+//     "firebase": {
+//       "command": "npx",
+//       "args": ["-y", "firebase-tools@latest", "mcp", "--groups", "core,firestore,auth"]
+//     }
+//   }
+// }

@@ -1,18 +1,26 @@
 # Use official Node.js 20 image
-FROM node:20-slim
+FROM node:20-alpine
 
-# Install dependencies: firebase-tools
-RUN npm install -g firebase-tools@latest
-
-# Create app directory
 WORKDIR /app
 
-# Copy an optional startup script (we'll define below)
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+# Copy package files
+COPY package*.json ./
 
-# Railway will use this port (though MCP is stdio by default)
-ENV PORT=8080
+# Install dependencies
+RUN npm ci --only=production
 
-# Start the MCP server
-CMD ["./start.sh"]
+# Copy source code and build files
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Expose port (Railway sets PORT env var)
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:$PORT/health || exit 1
+
+# Start the server
+CMD ["npm", "start"]
