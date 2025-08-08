@@ -167,12 +167,16 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
     throw new Error('Firebase not initialized. Please check your service account configuration.');
   }
 
-  const { name, arguments: args } = request;
+  const { name, arguments: args } = request.params;
+  
+  if (!args || typeof args !== 'object') {
+    throw new Error('Invalid arguments provided');
+  }
 
   try {
     switch (name) {
       case 'firebase_get_user': {
-        const user = await admin.auth().getUser(args.uid);
+        const user = await admin.auth().getUser((args as any).uid);
         return {
           content: [{
             type: 'text',
@@ -189,9 +193,9 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
 
       case 'firebase_create_user': {
         const user = await admin.auth().createUser({
-          email: args.email,
-          password: args.password,
-          displayName: args.displayName
+          email: (args as any).email,
+          password: (args as any).password,
+          displayName: (args as any).displayName
         });
         return {
           content: [{
@@ -202,7 +206,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_list_users': {
-        const listResult = await admin.auth().listUsers(args.maxResults || 100);
+        const listResult = await admin.auth().listUsers((args as any).maxResults || 100);
         const users = listResult.users.map(u => ({
           uid: u.uid,
           email: u.email,
@@ -217,19 +221,19 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_delete_user': {
-        await admin.auth().deleteUser(args.uid);
+        await admin.auth().deleteUser((args as any).uid);
         return {
           content: [{
             type: 'text',
-            text: `User ${args.uid} deleted successfully`
+            text: `User ${(args as any).uid} deleted successfully`
           }]
         };
       }
 
       case 'firebase_get_document': {
         const doc = await admin.firestore()
-          .collection(args.collection)
-          .doc(args.documentId)
+          .collection((args as any).collection)
+          .doc((args as any).documentId)
           .get();
         
         if (!doc.exists) {
@@ -251,65 +255,65 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
 
       case 'firebase_set_document': {
         await admin.firestore()
-          .collection(args.collection)
-          .doc(args.documentId)
-          .set(args.data);
+          .collection((args as any).collection)
+          .doc((args as any).documentId)
+          .set((args as any).data);
         
         return {
           content: [{
             type: 'text',
-            text: `Document ${args.documentId} created/updated in ${args.collection}`
+            text: `Document ${(args as any).documentId} created/updated in ${(args as any).collection}`
           }]
         };
       }
 
       case 'firebase_update_document': {
         await admin.firestore()
-          .collection(args.collection)
-          .doc(args.documentId)
-          .update(args.data);
+          .collection((args as any).collection)
+          .doc((args as any).documentId)
+          .update((args as any).data);
         
         return {
           content: [{
             type: 'text',
-            text: `Document ${args.documentId} updated in ${args.collection}`
+            text: `Document ${(args as any).documentId} updated in ${(args as any).collection}`
           }]
         };
       }
 
       case 'firebase_delete_document': {
         await admin.firestore()
-          .collection(args.collection)
-          .doc(args.documentId)
+          .collection((args as any).collection)
+          .doc((args as any).documentId)
           .delete();
         
         return {
           content: [{
             type: 'text',
-            text: `Document ${args.documentId} deleted from ${args.collection}`
+            text: `Document ${(args as any).documentId} deleted from ${(args as any).collection}`
           }]
         };
       }
 
       case 'firebase_query_collection': {
-        let query: any = admin.firestore().collection(args.collection);
+        let query: any = admin.firestore().collection((args as any).collection);
 
-        if (args.where) {
-          for (const condition of args.where) {
+        if ((args as any).where) {
+          for (const condition of (args as any).where) {
             query = query.where(condition.field, condition.operator, condition.value);
           }
         }
 
-        if (args.orderBy) {
-          query = query.orderBy(args.orderBy.field, args.orderBy.direction || 'asc');
+        if ((args as any).orderBy) {
+          query = query.orderBy((args as any).orderBy.field, (args as any).orderBy.direction || 'asc');
         }
 
-        if (args.limit) {
-          query = query.limit(args.limit);
+        if ((args as any).limit) {
+          query = query.limit((args as any).limit);
         }
 
         const snapshot = await query.get();
-        const results = snapshot.docs.map(doc => ({
+        const results = snapshot.docs.map((doc: admin.firestore.QueryDocumentSnapshot) => ({
           id: doc.id,
           data: doc.data()
         }));

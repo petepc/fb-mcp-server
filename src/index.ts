@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamable.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
 import { initializeFirebase, firebaseTools, handleFirebaseTool } from './firebase.js';
@@ -51,6 +51,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // MCP endpoint using Streamable HTTP transport
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: undefined // Stateless mode for Railway deployment
+});
+
+// Connect server to transport once
+server.connect(transport);
+
 app.post('/mcp', async (req, res) => {
   // Basic auth check (use environment variable for API key)
   const authHeader = req.headers.authorization;
@@ -61,8 +68,16 @@ app.post('/mcp', async (req, res) => {
   }
 
   try {
-    const transport = new StreamableHTTPServerTransport(req, res);
-    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (error) {
+    console.error('MCP connection error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/mcp', async (req, res) => {
+  try {
+    await transport.handleRequest(req, res);
   } catch (error) {
     console.error('MCP connection error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -77,11 +92,16 @@ async function main() {
     // Initialize Firebase with either file path or JSON string
     if (serviceAccountJson) {
       initializeFirebase(undefined, serviceAccountJson);
-    } else {
+      console.log('Firebase initialized with service account JSON');
+    } else if (serviceAccountPath) {
       initializeFirebase(serviceAccountPath);
+      console.log('Firebase initialized with service account file');
+    } else {
+      console.warn('No Firebase credentials provided. Server will start but Firebase operations will fail.');
+      console.warn('Set FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_PATH environment variable.');
     }
     
-    console.log('Firebase MCP Server initialized');
+    console.log('Firebase MCP Server starting...');
     
     const port = parseInt(process.env.PORT || '3000');
     app.listen(port, '0.0.0.0', () => {
