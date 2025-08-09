@@ -1,7 +1,8 @@
-import { initializeApp, credential, auth, firestore, app } from 'firebase-admin';
+import admin from 'firebase-admin';
+const { initializeApp, credential, auth, firestore, app } = admin;
 import { Tool, CallToolRequest, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
-let firebaseApp: app.App | null = null;
+let firebaseApp: admin.app.App | null = null;
 
 export function initializeFirebase(serviceAccountPath?: string, serviceAccountJson?: string) {
   if (firebaseApp) return firebaseApp;
@@ -322,7 +323,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
         }
 
         const snapshot = await query.get();
-        const results = snapshot.docs.map((doc: firestore.QueryDocumentSnapshot) => ({
+        const results = snapshot.docs.map((doc: admin.firestore.QueryDocumentSnapshot) => ({
           id: doc.id,
           data: doc.data()
         }));
