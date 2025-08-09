@@ -1,5 +1,4 @@
 import admin from 'firebase-admin';
-const { initializeApp, credential, auth, firestore, app } = admin;
 import { Tool, CallToolRequest, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 let firebaseApp: admin.app.App | null = null;
@@ -8,32 +7,23 @@ export function initializeFirebase(serviceAccountPath?: string, serviceAccountJs
   if (firebaseApp) return firebaseApp;
   
   try {
-    console.log('Initializing Firebase...');
-    console.log('credential object:', typeof credential);
-    console.log('credential.cert:', typeof credential.cert);
-    
     if (serviceAccountJson) {
       // Parse JSON from environment variable (for Railway deployment)
-      console.log('Using service account JSON');
       const serviceAccount = JSON.parse(serviceAccountJson);
-      firebaseApp = initializeApp({
-        credential: credential.cert(serviceAccount)
+      firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
       });
     } else if (serviceAccountPath) {
       // Use file path (for local development)
-      console.log('Using service account file path');
-      firebaseApp = initializeApp({
-        credential: credential.cert(serviceAccountPath)
+      firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccountPath)
       });
     } else {
       // Use Application Default Credentials
-      console.log('Using application default credentials');
-      firebaseApp = initializeApp({
-        credential: credential.applicationDefault()
+      firebaseApp = admin.initializeApp({
+        credential: admin.credential.applicationDefault()
       });
     }
-    
-    console.log('Firebase initialized successfully');
   } catch (error) {
     console.error('Firebase initialization error:', error);
     throw new Error('Failed to initialize Firebase. Check your service account configuration.');
@@ -186,7 +176,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
   try {
     switch (name) {
       case 'firebase_get_user': {
-        const user = await auth().getUser((args as any).uid);
+        const user = await admin.auth().getUser((args as any).uid);
         return {
           content: [{
             type: 'text',
@@ -202,7 +192,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_create_user': {
-        const user = await auth().createUser({
+        const user = await admin.auth().createUser({
           email: (args as any).email,
           password: (args as any).password,
           displayName: (args as any).displayName
@@ -216,7 +206,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_list_users': {
-        const listResult = await auth().listUsers((args as any).maxResults || 100);
+        const listResult = await admin.auth().listUsers((args as any).maxResults || 100);
         const users = listResult.users.map(u => ({
           uid: u.uid,
           email: u.email,
@@ -231,7 +221,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_delete_user': {
-        await auth().deleteUser((args as any).uid);
+        await admin.auth().deleteUser((args as any).uid);
         return {
           content: [{
             type: 'text',
@@ -241,7 +231,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_get_document': {
-        const doc = await firestore()
+        const doc = await admin.firestore()
           .collection((args as any).collection)
           .doc((args as any).documentId)
           .get();
@@ -264,7 +254,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_set_document': {
-        await firestore()
+        await admin.firestore()
           .collection((args as any).collection)
           .doc((args as any).documentId)
           .set((args as any).data);
@@ -278,7 +268,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_update_document': {
-        await firestore()
+        await admin.firestore()
           .collection((args as any).collection)
           .doc((args as any).documentId)
           .update((args as any).data);
@@ -292,7 +282,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_delete_document': {
-        await firestore()
+        await admin.firestore()
           .collection((args as any).collection)
           .doc((args as any).documentId)
           .delete();
@@ -306,7 +296,7 @@ export async function handleFirebaseTool(request: CallToolRequest): Promise<Call
       }
 
       case 'firebase_query_collection': {
-        let query: any = firestore().collection((args as any).collection);
+        let query: any = admin.firestore().collection((args as any).collection);
 
         if ((args as any).where) {
           for (const condition of (args as any).where) {
