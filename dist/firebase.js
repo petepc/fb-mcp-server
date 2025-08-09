@@ -1,4 +1,5 @@
-import { initializeApp, credential, auth, firestore } from 'firebase-admin';
+import admin from 'firebase-admin';
+const { initializeApp, credential, auth, firestore, app } = admin;
 let firebaseApp = null;
 export function initializeFirebase(serviceAccountPath, serviceAccountJson) {
     if (firebaseApp)
