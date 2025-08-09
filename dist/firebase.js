@@ -1,28 +1,35 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, credential, auth, firestore } from 'firebase-admin';
 let firebaseApp = null;
 export function initializeFirebase(serviceAccountPath, serviceAccountJson) {
     if (firebaseApp)
         return firebaseApp;
     try {
+        console.log('Initializing Firebase...');
+        console.log('credential object:', typeof credential);
+        console.log('credential.cert:', typeof credential.cert);
         if (serviceAccountJson) {
             // Parse JSON from environment variable (for Railway deployment)
+            console.log('Using service account JSON');
             const serviceAccount = JSON.parse(serviceAccountJson);
-            firebaseApp = admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount)
+            firebaseApp = initializeApp({
+                credential: credential.cert(serviceAccount)
             });
         }
         else if (serviceAccountPath) {
             // Use file path (for local development)
-            firebaseApp = admin.initializeApp({
-                credential: admin.credential.cert(serviceAccountPath)
+            console.log('Using service account file path');
+            firebaseApp = initializeApp({
+                credential: credential.cert(serviceAccountPath)
             });
         }
         else {
             // Use Application Default Credentials
-            firebaseApp = admin.initializeApp({
-                credential: admin.credential.applicationDefault()
+            console.log('Using application default credentials');
+            firebaseApp = initializeApp({
+                credential: credential.applicationDefault()
             });
         }
+        console.log('Firebase initialized successfully');
     }
     catch (error) {
         console.error('Firebase initialization error:', error);
@@ -170,7 +177,7 @@ export async function handleFirebaseTool(request) {
     try {
         switch (name) {
             case 'firebase_get_user': {
-                const user = await admin.auth().getUser(args.uid);
+                const user = await auth().getUser(args.uid);
                 return {
                     content: [{
                             type: 'text',
@@ -185,7 +192,7 @@ export async function handleFirebaseTool(request) {
                 };
             }
             case 'firebase_create_user': {
-                const user = await admin.auth().createUser({
+                const user = await auth().createUser({
                     email: args.email,
                     password: args.password,
                     displayName: args.displayName
@@ -198,7 +205,7 @@ export async function handleFirebaseTool(request) {
                 };
             }
             case 'firebase_list_users': {
-                const listResult = await admin.auth().listUsers(args.maxResults || 100);
+                const listResult = await auth().listUsers(args.maxResults || 100);
                 const users = listResult.users.map(u => ({
                     uid: u.uid,
                     email: u.email,
@@ -212,7 +219,7 @@ export async function handleFirebaseTool(request) {
                 };
             }
             case 'firebase_delete_user': {
-                await admin.auth().deleteUser(args.uid);
+                await auth().deleteUser(args.uid);
                 return {
                     content: [{
                             type: 'text',
@@ -221,7 +228,7 @@ export async function handleFirebaseTool(request) {
                 };
             }
             case 'firebase_get_document': {
-                const doc = await admin.firestore()
+                const doc = await firestore()
                     .collection(args.collection)
                     .doc(args.documentId)
                     .get();
@@ -241,7 +248,7 @@ export async function handleFirebaseTool(request) {
                 };
             }
             case 'firebase_set_document': {
-                await admin.firestore()
+                await firestore()
                     .collection(args.collection)
                     .doc(args.documentId)
                     .set(args.data);
@@ -253,7 +260,7 @@ export async function handleFirebaseTool(request) {
                 };
             }
             case 'firebase_update_document': {
-                await admin.firestore()
+                await firestore()
                     .collection(args.collection)
                     .doc(args.documentId)
                     .update(args.data);
@@ -265,7 +272,7 @@ export async function handleFirebaseTool(request) {
                 };
             }
             case 'firebase_delete_document': {
-                await admin.firestore()
+                await firestore()
                     .collection(args.collection)
                     .doc(args.documentId)
                     .delete();
@@ -277,7 +284,7 @@ export async function handleFirebaseTool(request) {
                 };
             }
             case 'firebase_query_collection': {
-                let query = admin.firestore().collection(args.collection);
+                let query = firestore().collection(args.collection);
                 if (args.where) {
                     for (const condition of args.where) {
                         query = query.where(condition.field, condition.operator, condition.value);
